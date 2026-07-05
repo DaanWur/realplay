@@ -6,6 +6,8 @@ import { WorkerService } from './worker.service';
 import { RedisModule } from '@app/redis';
 import { PrismaModule } from '@app/prisma';
 
+import { SnapshotProcessor } from './snapshot/snapshot.processor';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -23,6 +25,6 @@ import { PrismaModule } from '@app/prisma';
     }),
   ],
   controllers: [WorkerController],
-  providers: [WorkerService],
+  providers: [WorkerService, SnapshotProcessor],
 })
 export class WorkerModule {}
