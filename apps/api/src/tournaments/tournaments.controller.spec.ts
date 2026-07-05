@@ -22,7 +22,9 @@ describe('TournamentsController', () => {
   });
 
   it('delegates leaderboard queries with parsed pagination params', async () => {
-    service.getLeaderboard.mockResolvedValue([{ playerId: 'player_1', score: 500, rank: 1 }]);
+    service.getLeaderboard.mockResolvedValue([
+      { playerId: 'player_1', score: 500, rank: 1 },
+    ]);
 
     const result = await controller.getLeaderboard('t1', 10, 0);
 

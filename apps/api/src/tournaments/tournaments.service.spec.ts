@@ -38,12 +38,27 @@ describe('TournamentsService', () => {
   });
 
   it('returns the live leaderboard from Redis sorted by score descending', async () => {
-    prisma.tournament.findUnique.mockResolvedValue({ id: 't1', status: 'ACTIVE' });
-    redis.zrevrange.mockResolvedValue(['player_1', '500', 'player_2', '300', 'player_3', '100']);
+    prisma.tournament.findUnique.mockResolvedValue({
+      id: 't1',
+      status: 'ACTIVE',
+    });
+    redis.zrevrange.mockResolvedValue([
+      'player_1',
+      '500',
+      'player_2',
+      '300',
+      'player_3',
+      '100',
+    ]);
 
     const result = await service.getLeaderboard('t1', 10, 0);
 
-    expect(redis.zrevrange).toHaveBeenCalledWith('tournament:t1:leaderboard', 0, 9, 'WITHSCORES');
+    expect(redis.zrevrange).toHaveBeenCalledWith(
+      'tournament:t1:leaderboard',
+      0,
+      9,
+      'WITHSCORES',
+    );
     expect(result).toEqual([
       { playerId: 'player_1', score: 500, rank: 1 },
       { playerId: 'player_2', score: 300, rank: 2 },
@@ -52,17 +67,28 @@ describe('TournamentsService', () => {
   });
 
   it('applies offset to computed ranks for paginated Redis results', async () => {
-    prisma.tournament.findUnique.mockResolvedValue({ id: 't1', status: 'ACTIVE' });
+    prisma.tournament.findUnique.mockResolvedValue({
+      id: 't1',
+      status: 'ACTIVE',
+    });
     redis.zrevrange.mockResolvedValue(['player_3', '100']);
 
     const result = await service.getLeaderboard('t1', 10, 2);
 
-    expect(redis.zrevrange).toHaveBeenCalledWith('tournament:t1:leaderboard', 2, 11, 'WITHSCORES');
+    expect(redis.zrevrange).toHaveBeenCalledWith(
+      'tournament:t1:leaderboard',
+      2,
+      11,
+      'WITHSCORES',
+    );
     expect(result).toEqual([{ playerId: 'player_3', score: 100, rank: 3 }]);
   });
 
   it('returns the final placements from Postgres, ordered by rank, once completed', async () => {
-    prisma.tournament.findUnique.mockResolvedValue({ id: 't1', status: 'COMPLETED' });
+    prisma.tournament.findUnique.mockResolvedValue({
+      id: 't1',
+      status: 'COMPLETED',
+    });
     prisma.tournamentResult.findMany.mockResolvedValue([
       { playerId: 'player_1', score: 500, rank: 1 },
       { playerId: 'player_2', score: 300, rank: 2 },

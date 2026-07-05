@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@app/prisma';
 import { RedisService } from '@app/redis';
 import { CreateBetDto } from './dto/create-bet.dto';
@@ -10,7 +11,11 @@ export class BetsService {
     private readonly redis: RedisService,
   ) {}
 
-  async ingest(dto: CreateBetDto) {
+  async ingest(dto: CreateBetDto): Promise<{
+    status: string;
+    processedCount: number;
+    duplicateCount: number;
+  }> {
     const betTime = new Date(dto.createdAt);
 
     // 1. Query Postgres for all tournaments where startsAt <= bet.createdAt <= endsAt
@@ -49,10 +54,13 @@ export class BetsService {
         const key = `tournament:${tournament.id}:leaderboard`;
         await this.redis.zincrby(key, dto.amount, dto.playerId);
         processedCount++;
-      } catch (error: any) {
+      } catch (error) {
         // P2002 is Prisma's code for Unique constraint failed: this externalBetId was
         // already counted for this tournament. Treat as an idempotent no-op, not an error.
-        if (error.code === 'P2002') {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
           duplicateCount++;
           continue;
         }

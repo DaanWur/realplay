@@ -13,7 +13,7 @@ export class TournamentsService {
     @InjectQueue('tournament-snapshot') private snapshotQueue: Queue,
   ) {}
 
-  async create(dto: CreateTournamentDto) {
+  async create(dto: CreateTournamentDto): Promise<{ id: string }> {
     const startsAt = new Date(dto.startsAt);
     const endsAt = new Date(dto.endsAt);
 
@@ -44,7 +44,11 @@ export class TournamentsService {
     return { id: tournament.id };
   }
 
-  async getLeaderboard(id: string, limit: number, offset: number) {
+  async getLeaderboard(
+    id: string,
+    limit: number,
+    offset: number,
+  ): Promise<{ playerId: string; score: number; rank: number }[]> {
     const tournament = await this.prisma.tournament.findUnique({
       where: { id },
     });
@@ -60,7 +64,7 @@ export class TournamentsService {
         skip: offset,
         take: limit,
       });
-      return results.map(r => ({
+      return results.map((r) => ({
         playerId: r.playerId,
         score: r.score,
         rank: r.rank,
@@ -69,8 +73,13 @@ export class TournamentsService {
 
     // Pending or Active: get from Redis
     const key = `tournament:${id}:leaderboard`;
-    const redisResults = await this.redis.zrevrange(key, offset, offset + limit - 1, 'WITHSCORES');
-    
+    const redisResults = await this.redis.zrevrange(
+      key,
+      offset,
+      offset + limit - 1,
+      'WITHSCORES',
+    );
+
     const formatted: { playerId: string; score: number; rank: number }[] = [];
     for (let i = 0; i < redisResults.length; i += 2) {
       formatted.push({

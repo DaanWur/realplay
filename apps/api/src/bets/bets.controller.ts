@@ -8,7 +8,11 @@ export class BetsController {
 
   @Post()
   @HttpCode(HttpStatus.ACCEPTED)
-  async ingest(@Body() createBetDto: CreateBetDto) {
+  async ingest(@Body() createBetDto: CreateBetDto): Promise<{
+    status: string;
+    processedCount: number;
+    duplicateCount: number;
+  }> {
     return this.betsService.ingest(createBetDto);
   }
 }

@@ -53,7 +53,7 @@ exports.AppModule = AppModule = __decorate([
             bullmq_1.BullModule.forRootAsync({
                 imports: [config_1.ConfigModule],
                 inject: [config_1.ConfigService],
-                useFactory: async (configService) => ({
+                useFactory: (configService) => ({
                     connection: {
                         host: configService.get('REDIS_HOST', 'localhost'),
                         port: configService.get('REDIS_PORT', 6379),
@@ -374,7 +374,7 @@ exports.TournamentsModule = TournamentsModule = __decorate([
             }),
         ],
         providers: [tournaments_service_1.TournamentsService],
-        controllers: [tournaments_controller_1.TournamentsController]
+        controllers: [tournaments_controller_1.TournamentsController],
     })
 ], TournamentsModule);
 
@@ -448,7 +448,7 @@ let TournamentsService = class TournamentsService {
                 skip: offset,
                 take: limit,
             });
-            return results.map(r => ({
+            return results.map((r) => ({
                 playerId: r.playerId,
                 score: r.score,
                 rank: r.rank,
@@ -607,7 +607,7 @@ exports.BetsModule = BetsModule;
 exports.BetsModule = BetsModule = __decorate([
     (0, common_1.Module)({
         providers: [bets_service_1.BetsService],
-        controllers: [bets_controller_1.BetsController]
+        controllers: [bets_controller_1.BetsController],
     })
 ], BetsModule);
 
@@ -630,6 +630,7 @@ var _a, _b;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.BetsService = void 0;
 const common_1 = __webpack_require__(2);
+const client_1 = __webpack_require__(16);
 const prisma_1 = __webpack_require__(13);
 const redis_1 = __webpack_require__(9);
 let BetsService = class BetsService {
@@ -670,7 +671,8 @@ let BetsService = class BetsService {
                 processedCount++;
             }
             catch (error) {
-                if (error.code === 'P2002') {
+                if (error instanceof client_1.Prisma.PrismaClientKnownRequestError &&
+                    error.code === 'P2002') {
                     duplicateCount++;
                     continue;
                 }

@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@app/prisma';
 import { RedisService } from '@app/redis';
 import { BetsService } from './bets.service';
@@ -7,7 +8,10 @@ import { CreateBetDto } from './dto/create-bet.dto';
 
 describe('BetsService', () => {
   let service: BetsService;
-  let prisma: { tournament: { findMany: jest.Mock }; tournamentBet: { create: jest.Mock } };
+  let prisma: {
+    tournament: { findMany: jest.Mock };
+    tournamentBet: { create: jest.Mock };
+  };
   let redis: { zincrby: jest.Mock };
 
   const tournament = { id: 'tourney-1' };
@@ -45,32 +49,42 @@ describe('BetsService', () => {
     const result = await service.ingest(bet);
 
     expect(prisma.tournamentBet.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+      data: {
         tournamentId: tournament.id,
         externalBetId: bet.externalBetId,
         playerId: bet.playerId,
         amount: bet.amount,
-      }),
+        currency: bet.currency,
+        createdAt: new Date(bet.createdAt),
+      },
     });
     expect(redis.zincrby).toHaveBeenCalledWith(
       `tournament:${tournament.id}:leaderboard`,
       bet.amount,
       bet.playerId,
     );
-    expect(result).toEqual({ status: 'ok', processedCount: 1, duplicateCount: 0 });
+    expect(result).toEqual({
+      status: 'ok',
+      processedCount: 1,
+      duplicateCount: 0,
+    });
   });
 
   it('treats a duplicate externalBetId as an idempotent no-op without double-counting the score', async () => {
-    prisma.tournamentBet.create.mockRejectedValue({ code: 'P2002' });
+    prisma.tournamentBet.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+        code: 'P2002',
+        clientVersion: '7.8.0',
+      }),
+    );
 
-    const result = await expect(service.ingest(bet)).resolves.toEqual({
+    await expect(service.ingest(bet)).resolves.toEqual({
       status: 'ok',
       processedCount: 0,
       duplicateCount: 1,
     });
 
     expect(redis.zincrby).not.toHaveBeenCalled();
-    return result;
   });
 
   it('rejects a bet that does not fall within any active tournament window', async () => {

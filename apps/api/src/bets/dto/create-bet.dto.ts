@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, IsInt, IsDateString, Min } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsInt,
+  IsDateString,
+  Min,
+} from 'class-validator';
 
 export class CreateBetDto {
   @IsString()

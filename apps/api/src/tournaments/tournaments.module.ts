@@ -10,6 +10,6 @@ import { TournamentsController } from './tournaments.controller';
     }),
   ],
   providers: [TournamentsService],
-  controllers: [TournamentsController]
+  controllers: [TournamentsController],
 })
 export class TournamentsModule {}

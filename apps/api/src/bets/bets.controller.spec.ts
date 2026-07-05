@@ -29,11 +29,19 @@ describe('BetsController', () => {
       currency: 'USD',
       createdAt: '2026-06-04T12:30:00.000Z',
     };
-    service.ingest.mockResolvedValue({ status: 'ok', processedCount: 1, duplicateCount: 0 });
+    service.ingest.mockResolvedValue({
+      status: 'ok',
+      processedCount: 1,
+      duplicateCount: 0,
+    });
 
     const result = await controller.ingest(dto);
 
     expect(service.ingest).toHaveBeenCalledWith(dto);
-    expect(result).toEqual({ status: 'ok', processedCount: 1, duplicateCount: 0 });
+    expect(result).toEqual({
+      status: 'ok',
+      processedCount: 1,
+      duplicateCount: 0,
+    });
   });
 });

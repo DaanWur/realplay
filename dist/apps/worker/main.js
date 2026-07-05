@@ -40,7 +40,7 @@ exports.WorkerModule = WorkerModule = __decorate([
             bullmq_1.BullModule.forRootAsync({
                 imports: [config_1.ConfigModule],
                 inject: [config_1.ConfigService],
-                useFactory: async (configService) => ({
+                useFactory: (configService) => ({
                     connection: {
                         host: configService.get('REDIS_HOST', 'localhost'),
                         port: configService.get('REDIS_PORT', 6379),
@@ -454,7 +454,7 @@ async function bootstrap() {
     const app = await core_1.NestFactory.create(worker_module_1.WorkerModule);
     await app.listen(process.env.PORT ?? 3001);
 }
-bootstrap();
+void bootstrap();
 
 })();
 

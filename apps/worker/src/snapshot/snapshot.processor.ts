@@ -25,7 +25,12 @@ export class SnapshotProcessor extends WorkerHost {
 
     if (redisResults.length > 0) {
       // 2. Map into results
-      const resultsData: { tournamentId: string; playerId: string; score: number; rank: number }[] = [];
+      const resultsData: {
+        tournamentId: string;
+        playerId: string;
+        score: number;
+        rank: number;
+      }[] = [];
       for (let i = 0; i < redisResults.length; i += 2) {
         resultsData.push({
           tournamentId,
@@ -58,7 +63,7 @@ export class SnapshotProcessor extends WorkerHost {
 
     // 4. Cleanup redis key
     await this.redis.del(key);
-    
+
     this.logger.log(`Finished snapshot for tournament ${tournamentId}`);
   }
 }
