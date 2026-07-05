@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { RedisModule } from '@app/redis';
 import { PrismaModule } from '@app/prisma';
 import { TournamentsModule } from './tournaments/tournaments.module';
+import { BetsModule } from './bets/bets.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { TournamentsModule } from './tournaments/tournaments.module';
       }),
     }),
     TournamentsModule,
+    BetsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
