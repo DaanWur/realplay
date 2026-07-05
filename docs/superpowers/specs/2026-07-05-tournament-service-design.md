@@ -77,9 +77,9 @@ model TournamentResult {
     2. If no matching active tournaments are found, return `400 Bad Request` with an error message indicating the bet does not qualify for any current tournaments.
     3. For each matching tournament:
         *   Attempt to insert into `TournamentBet` `(tournamentId, externalBetId)`.
-        *   **Idempotency Check**: If the insert fails with Prisma error `P2002` (Unique constraint failed), this bet was already processed for this tournament. Skip further processing for this specific tournament.
+        *   **Idempotency Check**: If the insert fails with Prisma error `P2002` (Unique constraint failed), this bet was already processed. Abort the operation and return a `409 Conflict` (or `400 Bad Request`) with a clear error message to the client indicating the bet is a duplicate.
         *   If the insert succeeds, execute Redis command: `ZINCRBY tournament:{id}:leaderboard <amount> <playerId>`.
-*   **Response**: `202 Accepted` (or `200 OK` if fully processed sync).
+*   **Response**: `202 Accepted` on success, `400 Bad Request` if no eligible tournaments, or `409 Conflict` if duplicate.
 
 ### GET `/tournaments/:id/leaderboard?limit=10&offset=0`
 *   **Input**: `tournamentId`, pagination query params.
