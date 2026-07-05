@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { RedisModule } from '@app/redis';
 import { PrismaModule } from '@app/prisma';
+import { TournamentsModule } from './tournaments/tournaments.module';
 
 @Module({
   imports: [
@@ -21,9 +22,7 @@ import { PrismaModule } from '@app/prisma';
         },
       }),
     }),
-    BullModule.registerQueue({
-      name: 'tournament-snapshot',
-    }),
+    TournamentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
