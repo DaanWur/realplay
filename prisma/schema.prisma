@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Tournament {
+  id        String             @id @default(uuid())
+  name      String
+  startsAt  DateTime
+  endsAt    DateTime
+  status    TournamentStatus   @default(PENDING) // PENDING, ACTIVE, COMPLETED
+  createdAt DateTime           @default(now())
+
+  bets      TournamentBet[]
+  results   TournamentResult[]
+}
+
+enum TournamentStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+}
+
+model TournamentBet {
+  id            String     @id @default(uuid())
+  tournamentId  String
+  externalBetId String
+  playerId      String
+  amount        Int        // in cents
+  currency      String
+  createdAt     DateTime   @default(now())
+
+  tournament    Tournament @relation(fields: [tournamentId], references: [id])
+
+  // Strict idempotency constraint: an external bet can only count ONCE per tournament.
+  @@unique([tournamentId, externalBetId])
+}
+
+model TournamentResult {
+  id           String     @id @default(uuid())
+  tournamentId String
+  playerId     String
+  score        Int
+  rank         Int
+  createdAt    DateTime   @default(now())
+
+  tournament   Tournament @relation(fields: [tournamentId], references: [id])
+
+  @@unique([tournamentId, playerId])
+}
