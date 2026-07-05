@@ -15,7 +15,7 @@ export class SnapshotProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<{ tournamentId: string }>) {
+  async process(job: Job<{ tournamentId: string }>): Promise<void> {
     const { tournamentId } = job.data;
     this.logger.log(`Starting snapshot for tournament ${tournamentId}`);
 

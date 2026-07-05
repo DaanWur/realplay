@@ -12,7 +12,7 @@ export class RedisService extends Redis implements OnModuleDestroy {
     });
   }
 
-  onModuleDestroy() {
+  onModuleDestroy(): void {
     this.disconnect();
   }
 }
