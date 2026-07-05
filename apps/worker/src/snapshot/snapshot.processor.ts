@@ -17,15 +17,15 @@ export class SnapshotProcessor extends WorkerHost {
 
   async process(job: Job<{ tournamentId: string }>) {
     const { tournamentId } = job.data;
-    this.logger.log(\`Starting snapshot for tournament \${tournamentId}\`);
+    this.logger.log(`Starting snapshot for tournament ${tournamentId}`);
 
     // 1. Fetch full leaderboard
-    const key = \`tournament:\${tournamentId}:leaderboard\`;
+    const key = `tournament:${tournamentId}:leaderboard`;
     const redisResults = await this.redis.zrevrange(key, 0, -1, 'WITHSCORES');
 
     if (redisResults.length > 0) {
       // 2. Map into results
-      const resultsData = [];
+      const resultsData: { tournamentId: string; playerId: string; score: number; rank: number }[] = [];
       for (let i = 0; i < redisResults.length; i += 2) {
         resultsData.push({
           tournamentId,
@@ -59,6 +59,6 @@ export class SnapshotProcessor extends WorkerHost {
     // 4. Cleanup redis key
     await this.redis.del(key);
     
-    this.logger.log(\`Finished snapshot for tournament \${tournamentId}\`);
+    this.logger.log(`Finished snapshot for tournament ${tournamentId}`);
   }
 }

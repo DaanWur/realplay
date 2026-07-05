@@ -23,6 +23,9 @@ import { SnapshotProcessor } from './snapshot/snapshot.processor';
         },
       }),
     }),
+    BullModule.registerQueue({
+      name: 'tournament-snapshot',
+    }),
   ],
   controllers: [WorkerController],
   providers: [WorkerService, SnapshotProcessor],

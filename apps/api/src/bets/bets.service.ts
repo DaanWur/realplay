@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@app/prisma';
 import { RedisService } from '@app/redis';
 import { CreateBetDto } from './dto/create-bet.dto';
@@ -23,10 +23,13 @@ export class BetsService {
     });
 
     if (activeTournaments.length === 0) {
-      throw new BadRequestException('Bet does not qualify for any active tournament');
+      throw new BadRequestException(
+        'Bet does not qualify for any active tournament',
+      );
     }
 
     let processedCount = 0;
+    let duplicateCount = 0;
 
     // 3. For each matching tournament
     for (const tournament of activeTournaments) {
@@ -43,18 +46,20 @@ export class BetsService {
         });
 
         // If insert succeeds, update Redis Leaderboard
-        const key = \`tournament:\${tournament.id}:leaderboard\`;
+        const key = `tournament:${tournament.id}:leaderboard`;
         await this.redis.zincrby(key, dto.amount, dto.playerId);
         processedCount++;
       } catch (error: any) {
-        // P2002 is Prisma's code for Unique constraint failed
+        // P2002 is Prisma's code for Unique constraint failed: this externalBetId was
+        // already counted for this tournament. Treat as an idempotent no-op, not an error.
         if (error.code === 'P2002') {
-          throw new ConflictException(\`Duplicate bet for tournament \${tournament.id}\`);
+          duplicateCount++;
+          continue;
         }
         throw error;
       }
     }
 
-    return { processedCount };
+    return { status: 'ok', processedCount, duplicateCount };
   }
 }

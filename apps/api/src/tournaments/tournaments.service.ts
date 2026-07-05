@@ -68,10 +68,10 @@ export class TournamentsService {
     }
 
     // Pending or Active: get from Redis
-    const key = \`tournament:\${id}:leaderboard\`;
+    const key = `tournament:${id}:leaderboard`;
     const redisResults = await this.redis.zrevrange(key, offset, offset + limit - 1, 'WITHSCORES');
     
-    const formatted = [];
+    const formatted: { playerId: string; score: number; rank: number }[] = [];
     for (let i = 0; i < redisResults.length; i += 2) {
       formatted.push({
         playerId: redisResults[i],
