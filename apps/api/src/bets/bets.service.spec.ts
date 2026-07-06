@@ -46,7 +46,7 @@ describe('BetsService', () => {
   });
 
   it('ingests a bet and increments the tournament leaderboard by the bet amount', async () => {
-    const result = await service.ingest(bet);
+    const result = await service.bet(bet);
 
     expect(prisma.tournamentBet.create).toHaveBeenCalledWith({
       data: {
@@ -78,7 +78,7 @@ describe('BetsService', () => {
       }),
     );
 
-    await expect(service.ingest(bet)).resolves.toEqual({
+    await expect(service.bet(bet)).resolves.toEqual({
       status: 'ok',
       processedCount: 0,
       duplicateCount: 1,
@@ -90,7 +90,7 @@ describe('BetsService', () => {
   it('rejects a bet that does not fall within any active tournament window', async () => {
     prisma.tournament.findMany.mockResolvedValue([]);
 
-    await expect(service.ingest(bet)).rejects.toThrow(BadRequestException);
+    await expect(service.bet(bet)).rejects.toThrow(BadRequestException);
     expect(prisma.tournamentBet.create).not.toHaveBeenCalled();
     expect(redis.zincrby).not.toHaveBeenCalled();
   });

@@ -1,8 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
-import { WorkerController } from './worker.controller';
-import { WorkerService } from './worker.service';
 import { RedisModule } from '@app/redis';
 import { PrismaModule } from '@app/prisma';
 
@@ -27,7 +25,7 @@ import { SnapshotProcessor } from './snapshot/snapshot.processor';
       name: 'tournament-snapshot',
     }),
   ],
-  controllers: [WorkerController],
-  providers: [WorkerService, SnapshotProcessor],
+  controllers: [],
+  providers: [SnapshotProcessor],
 })
 export class WorkerModule {}

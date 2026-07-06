@@ -1,8 +1,11 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, Tournament } from '@prisma/client';
 import { PrismaService } from '@app/prisma';
 import { RedisService } from '@app/redis';
 import { CreateBetDto } from './dto/create-bet.dto';
+import { BetResultDto } from './dto/bet-result.dto';
+
+type BetOutcome = 'processed' | 'duplicate';
 
 @Injectable()
 export class BetsService {
@@ -11,21 +14,9 @@ export class BetsService {
     private readonly redis: RedisService,
   ) {}
 
-  async ingest(dto: CreateBetDto): Promise<{
-    status: string;
-    processedCount: number;
-    duplicateCount: number;
-  }> {
+  async bet(dto: CreateBetDto): Promise<BetResultDto> {
     const betTime = new Date(dto.createdAt);
-
-    // 1. Query Postgres for all tournaments where startsAt <= bet.createdAt <= endsAt
-    const activeTournaments = await this.prisma.tournament.findMany({
-      where: {
-        status: { in: ['PENDING', 'ACTIVE'] },
-        startsAt: { lte: betTime },
-        endsAt: { gte: betTime },
-      },
-    });
+    const activeTournaments = await this.findActiveTournaments(betTime);
 
     if (activeTournaments.length === 0) {
       throw new BadRequestException(
@@ -33,41 +24,64 @@ export class BetsService {
       );
     }
 
-    let processedCount = 0;
-    let duplicateCount = 0;
+    // Process all matching tournaments concurrently instead of one round-trip at a time.
+    const outcomes = await Promise.all(
+      activeTournaments.map((tournament) =>
+        this.recordBet(tournament, dto, betTime),
+      ),
+    );
 
-    // 3. For each matching tournament
-    for (const tournament of activeTournaments) {
-      try {
-        await this.prisma.tournamentBet.create({
-          data: {
-            tournamentId: tournament.id,
-            externalBetId: dto.externalBetId,
-            playerId: dto.playerId,
-            amount: dto.amount,
-            currency: dto.currency,
-            createdAt: betTime,
-          },
-        });
+    return {
+      status: 'ok',
+      processedCount: outcomes.filter((o) => o === 'processed').length,
+      duplicateCount: outcomes.filter((o) => o === 'duplicate').length,
+    };
+  }
 
-        // If insert succeeds, update Redis Leaderboard
-        const key = `tournament:${tournament.id}:leaderboard`;
-        await this.redis.zincrby(key, dto.amount, dto.playerId);
-        processedCount++;
-      } catch (error) {
-        // P2002 is Prisma's code for Unique constraint failed: this externalBetId was
-        // already counted for this tournament. Treat as an idempotent no-op, not an error.
-        if (
-          error instanceof Prisma.PrismaClientKnownRequestError &&
-          error.code === 'P2002'
-        ) {
-          duplicateCount++;
-          continue;
-        }
-        throw error;
+  private findActiveTournaments(betTime: Date): Promise<Tournament[]> {
+    // A bet counts only while startsAt <= createdAt <= endsAt.
+    return this.prisma.tournament.findMany({
+      where: {
+        status: { in: ['PENDING', 'ACTIVE'] },
+        startsAt: { lte: betTime },
+        endsAt: { gte: betTime },
+      },
+    });
+  }
+
+  private async recordBet(
+    tournament: Tournament,
+    dto: CreateBetDto,
+    betTime: Date,
+  ): Promise<BetOutcome> {
+    try {
+      await this.prisma.tournamentBet.create({
+        data: {
+          tournamentId: tournament.id,
+          externalBetId: dto.externalBetId,
+          playerId: dto.playerId,
+          amount: dto.amount,
+          currency: dto.currency,
+          createdAt: betTime,
+        },
+      });
+
+      await this.redis.zincrby(
+        `tournament:${tournament.id}:leaderboard`,
+        dto.amount,
+        dto.playerId,
+      );
+      return 'processed';
+    } catch (error) {
+      // P2002 is Prisma's code for Unique constraint failed: this externalBetId was
+      // already counted for this tournament. Treat as an idempotent no-op, not an error.
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return 'duplicate';
       }
+      throw error;
     }
-
-    return { status: 'ok', processedCount, duplicateCount };
   }
 }

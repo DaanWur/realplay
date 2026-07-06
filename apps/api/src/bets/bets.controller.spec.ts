@@ -4,10 +4,10 @@ import { BetsService } from './bets.service';
 
 describe('BetsController', () => {
   let controller: BetsController;
-  let service: { ingest: jest.Mock };
+  let service: { bet: jest.Mock };
 
   beforeEach(async () => {
-    service = { ingest: jest.fn() };
+    service = { bet: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [BetsController],
@@ -29,15 +29,15 @@ describe('BetsController', () => {
       currency: 'USD',
       createdAt: '2026-06-04T12:30:00.000Z',
     };
-    service.ingest.mockResolvedValue({
+    service.bet.mockResolvedValue({
       status: 'ok',
       processedCount: 1,
       duplicateCount: 0,
     });
 
-    const result = await controller.ingest(dto);
+    const result = await controller.bet(dto);
 
-    expect(service.ingest).toHaveBeenCalledWith(dto);
+    expect(service.bet).toHaveBeenCalledWith(dto);
     expect(result).toEqual({
       status: 'ok',
       processedCount: 1,
