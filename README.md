@@ -74,6 +74,36 @@ Returns `[{ playerId, score, rank }]` sorted by score descending. Reads from Red
 the tournament is live, and from the Postgres `TournamentResult` table once it's
 `COMPLETED`.
 
+## Testing
+
+```bash
+npm test          # unit tests (mocked Prisma/Redis, no infra required)
+npm run test:e2e  # boots the real AppModule against Postgres/Redis (docker-compose up first)
+```
+
+Unit tests cover the three behaviors the spec calls out explicitly:
+
+- **Bet ingestion** (`bets.service.spec.ts`) — a valid bet creates a `TournamentBet` row and
+  `ZINCRBY`s the tournament's Redis leaderboard by the bet amount; a bet outside every
+  tournament's window is rejected with `400` before touching Postgres or Redis.
+- **Duplicate handling** (`bets.service.spec.ts`) — a bet whose `externalBetId` already
+  exists for a tournament (simulated via a real `Prisma.PrismaClientKnownRequestError`
+  with code `P2002`) is treated as a no-op: `duplicateCount` increments, `ZINCRBY` is never
+  called, and no error is thrown.
+- **Leaderboard ordering** (`tournaments.service.spec.ts`) — the live path (Redis
+  `ZREVRANGE`) returns results sorted score-descending with correctly offset ranks across
+  pages, and the completed path (Postgres `TournamentResult`) is asserted separately once
+  `status === 'COMPLETED'`.
+
+The controller specs (`bets.controller.spec.ts`, `tournaments.controller.spec.ts`) are
+thin — they just confirm the controller delegates to the service with the right arguments
+(including parsed `limit`/`offset` query params), since the actual logic lives in the
+services above. `prisma.service.spec.ts` and `redis.service.spec.ts` are sanity checks that
+each service instantiates via Nest's DI container. `app.e2e-spec.ts` is the one test that
+runs against real Postgres/Redis rather than mocks — it boots the full `AppModule` and
+confirms the whole dependency graph (Prisma adapter, Redis connection, BullMQ, every
+module) actually wires together, not just each piece in isolation.
+
 ## Assumptions
 
 Places where the spec was ambiguous and a call had to be made:
